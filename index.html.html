@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>明天的减肥计划 - 进阶练习版</title>
+    <style>
+        :root {
+            --primary: #2E7D32; /* Forest Green */
+            --primary-light: #E8F5E9;
+            --accent: #FF9800;  /* Orange */
+            --text: #333;
+            --gray: #666;
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --correct: #4CAF50;
+            --wrong: #F44336;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Container styling to look like a mobile app */
+        .app-container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            height: 100vh; /* Full screen on mobile */
+            max-height: 900px; /* Windowed on desktop */
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: var(--shadow);
+            border-radius: 0;
+        }
+        
+        @media (min-width: 800px) {
+            .app-container {
+                height: 90vh;
+                border-radius: 24px;
+                overflow: hidden;
+            }
+        }
+
+        /* Header */
+        header {
+            padding: 18px;
+            text-align: center;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 1.2rem;
+            font-weight: 800;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        /* Scrollable Content */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 100px; /* Space for navbar + toast */
+            scroll-behavior: smooth;
+        }
+
+        /* Sections */
+        .section { display: none; animation: fadeIn 0.4s ease; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Reading Section --- */
+        .article-text {
+            font-size: 1.4rem;
+            line-height: 2.3;
+            color: #2c3e50;
+        }
+        
+        .article-text p { margin-bottom: 24px; text-align: justify; }
+
+        .word {
+            color: var(--primary);
+            font-weight: 600;
+            border-bottom: 2px solid rgba(46, 125, 50, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0 2px;
+            border-radius: 4px;
+        }
+        
+        .word:active, .word.active-word {
+            background-color: var(--primary-light);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Popup Meaning Bar (Toast) */
+        #meaning-toast {
+            position: absolute;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            width: 90%;
+            max-width: 400px;
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            text-align: center;
+        }
+
+        #meaning-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+
+        .toast-zh { font-size: 1.4rem; font-weight: bold; color: var(--accent); margin-right: 10px; }
+        .toast-py { font-size: 0.95rem; color: #bbb; }
+        .toast-en { display: block; margin-top: 4px; font-size: 1.1rem; font-weight: 500; color: #fff; }
+
+        /* --- Vocab Section --- */
+        .vocab-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+        }
+        .vocab-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .vocab-card:hover { transform: translateY(-3px); border-color: var(--primary); }
+        .v-zh { font-size: 1.5rem; font-weight: bold; color: var(--text); }
+        .v-py { color: var(--gray); font-size: 0.9rem; margin: 5px 0; }
+        .v-en { color: var(--primary); font-size: 0.95rem; font-weight: 600; }
+
+        /* --- Quiz Section --- */
+        .quiz-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            border: 1px solid #eee;
+        }
+        .q-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 15px; display: flex; gap: 10px; }
+        .q-num { background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.9rem; flex-shrink: 0; }
+        
+        .options-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-opt {
+            flex: 1;
+            min-width: 100px;
+            padding: 12px;
+            border: 2px solid #eee;
+            background: white;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            color: #555;
+        }
+        .btn-opt:hover { background: #f9f9f9; }
+        
+        /* Quiz Feedback States */
+        .btn-opt.correct { background: var(--primary-light); border-color: var(--correct); color: var(--correct); }
+        .btn-opt.wrong { background: #ffebee; border-color: var(--wrong); color: var(--wrong); }
+        .btn-opt.disabled { pointer-events: none; opacity: 0.6; }
+
+        /* --- Practice Section (Hard Mode) --- */
+        .practice-header {
+            background: #FFF3E0;
+            color: #E65100;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .practice-list { display: grid; gap: 15px; }
+        
+        .input-row {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid #eee;
+        }
+        
+        .input-label {
+            flex: 1;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #444;
+            padding-left: 10px;
+        }
+
+        .input-field {
+            width: 100px;
+            padding: 10px;
+            font-size: 1.3rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s;
+            font-family: 'PingFang SC', sans-serif;
+        }
+        
+        .input-field:focus { border-color: var(--accent); }
+        .input-field.correct { border-color: var(--correct); background-color: var(--primary-light); color: var(--correct); }
+        .status-icon { width: 24px; margin-left: 10px; text-align: center; font-size: 1.2rem; }
+
+        /* --- Navbar --- */
+        .nav-bar {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            padding: 10px 0 20px 0; /* Extra padding for iOS home bar */
+            border-top: 1px solid #eee;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            z-index: 200;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            color: #aaa;
+            transition: color 0.3s;
+            width: 25%;
+        }
+
+        .nav-item.active { color: var(--primary); }
+        .nav-item svg { width: 24px; height: 24px; margin-bottom: 4px; fill: currentColor; }
+        .nav-text { font-size: 0.75rem; font-weight: 600; }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header id="page-title">阅读短文</header>
+
+    <div class="content">
+        
+        <!-- 1. READING SECTION -->
+        <div id="sec-read" class="section active">
+            <div style="background:#E3F2FD; color:#1565C0; padding:12px; border-radius:8px; margin-bottom:20px; font-size:0.9rem; text-align:center;">
+                💡 点击蓝色的词查看意思 (Tap blue words)
+            </div>
+
+            <div class="article-text">
+                <p>
+                    大明是一个
+                    <span class="word" onclick="pop(this, '胖胖', 'pàng pàng', 'Chubby')">胖胖</span>
+                    的男孩子，他非常喜欢吃
+                    <span class="word" onclick="pop(this, '零食', 'líng shí', 'Snacks')">零食</span>。
+                </p>
+                <p>
+                    今天早上，大明站在
+                    <span class="word" onclick="pop(this, '镜子', 'jìng zi', 'Mirror')">镜子</span>
+                    前面，看着自己的
+                    <span class="word" onclick="pop(this, '肚子', 'dù zi', 'Belly')">肚子</span>，
+                    <span class="word" onclick="pop(this, '难过', 'nán guò', 'Sad')">难过</span>
+                    地说：“我太胖了，衣服都穿不上了。从今天开始，我要
+                    <span class="word" onclick="pop(this, '减肥', 'jiǎn féi', 'To lose weight')">减肥</span>！
+                    我只吃草，不吃肉！”
+                </p>
+                <p>
+                    中午的时候，
+                    <span class="word" onclick="pop(this, '同事', 'tóng shì', 'Colleague')">同事</span>
+                    们要去吃
+                    <span class="word" onclick="pop(this, '火锅', 'huǒ guō', 'Hotpot')">火锅</span>。
+                    大明
+                    <span class="word" onclick="pop(this, '虽然', 'suī rán', 'Although')">虽然</span>
+                    很想去，但是他小声说：“我不去，我要吃草。”
+                </p>
+                <p>
+                    可是，到了晚上，大明路过一家
+                    <span class="word" onclick="pop(this, '炸鸡', 'zhá jī', 'Fried Chicken')">炸鸡</span>店。
+                    炸鸡的味道太香了！大明对自己说：“
+                    <span class="word" onclick="pop(this, '既然', 'jì rán', 'Since / As')">既然</span>
+                    减肥这么
+                    <span class="word" onclick="pop(this, '辛苦', 'xīn kǔ', 'Hard / Toilsome')">辛苦</span>，
+                    我必须先吃饱，这样才有
+                    <span class="word" onclick="pop(this, '力气', 'lì qi', 'Strength')">力气</span>
+                    减肥啊！”
+                </p>
+                <p>
+                    于是，大明买了两份炸鸡和一杯可乐。他一边吃，一边大声说：“减肥是明天的事，今天的我很饿！”
+                </p>
+            </div>
+        </div>
+
+        <!-- 2. VOCAB SECTION -->
+        <div id="sec-vocab" class="section">
+            <div class="vocab-grid" id="vocab-container">
+                <!-- Javascript will fill this -->
+            </div>
+        </div>
+
+        <!-- 3. QUIZ SECTION (EXPANDED) -->
+        <div id="sec-quiz" class="section">
+            <!-- Q1 -->
+            <div class="quiz-card">
+                <div class="q-title"><div class="q-num">1</div> 大明为什么想减肥？(Why did he want to lose weight?)</div>
+                <div class="options-grid">
+                    <button class="btn-opt" onclick="check(this, false)">A. 同事说他胖</button>
+                    <button class="btn-opt" onclick="check(this, true)">B. 衣服穿不上了</button>
+                </div>
+            </div>
+
+            <!-- Q2 -->
+            <div class="quiz-card">
+                <div class="q-title"><div class="q-num">2</div> 中午，大明和同事去吃火锅了吗？(Did he go to hotpot?)</div>
+                <div class="options-grid">
+                    <button class="btn-opt" onclick="check(this, false)">A. 去了 (Yes)</button>
+                    <button class="btn-opt" onclick="check(this, true)">B. 没去 (No)</button>
+                </div>
+            </div>
+
+            <!-- Q3 -->
+            <div class="quiz-card">
+                <div class="q-title"><div class="q-num">3</div> 晚上，大明路过哪里？(Where did he pass by at night?)</div>
+                <div class="options-grid">
+                    <button class="btn-opt" onclick="check(this, false)">A. 面馆 (Noodle shop)</button>
+                    <button class="btn-opt" onclick="check(this, true)">B. 炸鸡店 (Fried Chicken shop)</button>
+                </div>
+            </div>
+
+            <!-- Q4 -->
+            <div class="quiz-card">
+                <div class="q-title"><div class="q-num">4</div> 大明吃炸鸡的理由是什么？(What was his excuse?)</div>
+                <div class="options-grid">
+                    <button class="btn-opt" onclick="check(this, false)">A. 炸鸡很便宜</button>
+                    <button class="btn-opt" onclick="check(this, true)">B. 吃饱了才有力气减肥</button>
+                </div>
+            </div>
+
+            <!-- Q5 -->
+            <div class="quiz-card">
+                <div class="q-title"><div class="q-num">5</div> 大明最后决定什么时候开始减肥？(When will he start?)</div>
+                <div class="options-grid">
+                    <button class="btn-opt" onclick="check(this, true)">A. 明天 (Tomorrow)</button>
+                    <button class="btn-opt" onclick="check(this, false)">B. 下个星期 (Next week)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. PRACTICE SECTION (HARD MODE) -->
+        <div id="sec-practice" class="section">
+            <div class="practice-header">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                <span>挑战模式：没有拼音！<br><small style="font-weight:normal; opacity:0.8">看英文，打出所有生词</small></span>
+            </div>
+            
+            <div class="practice-list" id="practice-container">
+                <!-- JS will generate this -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TOAST POPUP -->
+    <div id="meaning-toast">
+        <div>
+            <span class="toast-zh" id="t-zh"></span>
+            <span class="toast-py" id="t-py"></span>
+        </div>
+        <span class="toast-en" id="t-en"></span>
+    </div>
+
+    <!-- NAVIGATION -->
+    <nav class="nav-bar">
+        <div class="nav-item active" onclick="nav('read', this)">
+            <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+            <span class="nav-text">阅读</span>
+        </div>
+        <div class="nav-item" onclick="nav('vocab', this)">
+            <svg viewBox="0 0 24 24"><path d="M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z"/></svg>
+            <span class="nav-text">生词</span>
+        </div>
+        <div class="nav-item" onclick="nav('quiz', this)">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+            <span class="nav-text">问答 (5)</span>
+        </div>
+        <div class="nav-item" onclick="nav('practice', this)">
+            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 9h-2V5h2v6zm0 4h-2v-2h2v2z"/></svg>
+            <span class="nav-text">练习 (13)</span>
+        </div>
+    </nav>
+
+</div>
+
+<script>
+    // Data Source
+    const words = [
+        { zh: '胖胖', py: 'pàng pàng', en: 'Chubby' },
+        { zh: '零食', py: 'líng shí', en: 'Snacks' },
+        { zh: '镜子', py: 'jìng zi', en: 'Mirror' },
+        { zh: '肚子', py: 'dù zi', en: 'Belly' },
+        { zh: '难过', py: 'nán guò', en: 'Sad' },
+        { zh: '减肥', py: 'jiǎn féi', en: 'To lose weight' },
+        { zh: '同事', py: 'tóng shì', en: 'Colleague' },
+        { zh: '火锅', py: 'huǒ guō', en: 'Hotpot' },
+        { zh: '虽然', py: 'suī rán', en: 'Although' },
+        { zh: '炸鸡', py: 'zhá jī', en: 'Fried Chicken' },
+        { zh: '既然', py: 'jì rán', en: 'Since / As' },
+        { zh: '辛苦', py: 'xīn kǔ', en: 'Hard / Toilsome' },
+        { zh: '力气', py: 'lì qi', en: 'Strength' }
+    ];
+
+    // Initialize Pages
+    function init() {
+        // 1. Fill Vocab Page
+        const vContainer = document.getElementById('vocab-container');
+        words.forEach(w => {
+            vContainer.innerHTML += `
+                <div class="vocab-card">
+                    <div class="v-zh">${w.zh}</div>
+                    <div class="v-py">${w.py}</div>
+                    <div class="v-en">${w.en}</div>
+                </div>`;
+        });
+
+        // 2. Fill Practice Page (All Words, No Pinyin)
+        const pContainer = document.getElementById('practice-container');
+        words.forEach((w, index) => {
+            pContainer.innerHTML += `
+                <div class="input-row">
+                    <span style="color:#aaa; font-size:0.8rem; width:20px;">${index+1}.</span>
+                    <div class="input-label">${w.en}</div>
+                    <input type="text" class="input-field" placeholder="中文" oninput="checkTyping(this, '${w.zh}')" autocomplete="off">
+                    <div class="status-icon"></div>
+                </div>`;
+        });
+    }
+
+    // Navigation Logic
+    function nav(id, el) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById('sec-' + id).classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        el.classList.add('active');
+
+        // Update Header Title
+        const titles = { 'read': '阅读短文', 'vocab': '重点生词', 'quiz': '阅读问答', 'practice': '全词汇练习' };
+        document.getElementById('page-title').innerText = titles[id];
+
+        // Hide Toast
+        document.getElementById('meaning-toast').classList.remove('show');
+        document.querySelectorAll('.word').forEach(w => w.classList.remove('active-word'));
+    }
+
+    // Reading Popover Logic
+    function pop(el, zh, py, en) {
+        // Highlight active word
+        document.querySelectorAll('.word').forEach(w => w.classList.remove('active-word'));
+        el.classList.add('active-word');
+
+        // Show Toast
+        const t = document.getElementById('meaning-toast');
+        document.getElementById('t-zh').innerText = zh;
+        document.getElementById('t-py').innerText = py;
+        document.getElementById('t-en').innerText = en;
+        t.classList.add('show');
+    }
+
+    // Hide toast when clicking article text
+    document.querySelector('.article-text').addEventListener('click', (e) => {
+        if (!e.target.classList.contains('word')) {
+            document.getElementById('meaning-toast').classList.remove('show');
+            document.querySelectorAll('.word').forEach(w => w.classList.remove('active-word'));
+        }
+    });
+
+    // Quiz Check Logic
+    function check(btn, isCorrect) {
+        const parent = btn.parentElement;
+        // Disable sibling buttons
+        const sibs = parent.querySelectorAll('.btn-opt');
+        sibs.forEach(b => b.classList.add('disabled'));
+
+        if(isCorrect) {
+            btn.classList.add('correct');
+            btn.innerText += " ✅";
+        } else {
+            btn.classList.add('wrong');
+            btn.innerText += " ❌";
+        }
+    }
+
+    // Practice Typing Logic
+    function checkTyping(input, answer) {
+        const icon = input.parentElement.querySelector('.status-icon');
+        const val = input.value.trim();
+
+        if (val === answer) {
+            input.classList.add('correct');
+            input.blur(); // Dismiss keyboard
+            icon.innerHTML = "✅";
+        } else {
+            input.classList.remove('correct');
+            icon.innerHTML = "";
+        }
+    }
+
+    // Run Init
+    init();
+
+</script>
+</body>
+</html>
